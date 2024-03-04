@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:file_picker/file_picker.dart';
 
 class MessagesScreen extends StatefulWidget {
   @override
@@ -6,6 +10,102 @@ class MessagesScreen extends StatefulWidget {
 }
 
 class _ChatPageState extends State<MessagesScreen> {
+  List<dynamic> messages = []; // List to store fetched messages
+  late IO.Socket socket;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchMessages(); // Fetch messages when the widget initializes
+    connectToSocket();
+  }
+
+  Future<void> fetchMessages() async {
+    final response = await http.get(Uri.parse(
+        'http://10.0.2.2:9090/conversations/65ce508521b067df4689e7e8/messages'));
+
+    if (response.statusCode == 200) {
+      // If the server returns a 200 OK response, parse the JSON
+      final Map<String, dynamic> responseData = json.decode(response.body);
+      setState(() {
+        messages = responseData['messages'];
+      });
+    } else {
+      // If the server did not return a 200 OK response, throw an error.
+      throw Exception('Failed to load messages');
+    }
+  }
+
+  void connectToSocket() {
+    socket = IO.io('http://10.0.2.2:9090', <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': false,
+    });
+
+    socket.connect();
+
+    socket.onConnect((_) {
+      print('Connected to socket.io server');
+    });
+
+    socket.onDisconnect((_) {
+      print('Disconnected from socket.io server');
+    });
+
+    socket.on('new_message', (data) {
+      print('New message received: $data');
+      setState(() {
+        messages.add(data); // Add the new message to the list
+      });
+    });
+  }
+
+  void sendMessage(String message) {
+    socket.emit('new_message', {
+      'sender': '65ce508521b067df4689e7e8', // Your sender ID
+      'content': message,
+      'conversation': '65ce508521b067df4689e7e8' // Your conversation ID
+    });
+  }
+
+  Future<void> selectFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+    if (result != null) {
+      PlatformFile file = result.files.first;
+      // Send the file to the server using the appropriate HTTP request
+      String filePath = file.path!;
+      String fileName = file.name;
+
+      // Send the file to the server using HTTP POST request
+      try {
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse(
+              'http://10.0.2.2:9090/conversations/65ce508521b067df4689e7e8/attachments'),
+        );
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'file',
+            filePath,
+            filename: fileName,
+          ),
+        );
+        var response = await request.send();
+        if (response.statusCode == 201) {
+          print('File uploaded successfully');
+          // Handle success
+        } else {
+          print('Failed to upload file: ${response.reasonPhrase}');
+          // Handle failure
+        }
+      } catch (e) {
+        print('Error uploading file: $e');
+        // Handle error
+      }
+    }
+  }
+
   Color chatBackgroundColor = Colors.white; // Default color for chat background
 
   @override
@@ -93,7 +193,7 @@ class _ChatPageState extends State<MessagesScreen> {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundImage: AssetImage('assets/image/5.jpg'), // Replace with actual path
+                      // Replace with actual path
                     ),
                     SizedBox(width: 10),
                     Column(
@@ -137,47 +237,17 @@ class _ChatPageState extends State<MessagesScreen> {
               topLeft: Radius.circular(45), topRight: Radius.circular(45)),
           color: chatBackgroundColor, // Use the chat background color here
         ),
-        child: ListView(
+        child: ListView.builder(
           physics: BouncingScrollPhysics(),
-          children: [
-            _itemChat(
-              avatar: 'assets/image/5.jpg',
-              chat: 1,
-              message:
-                  'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-              time: '18.00',
-            ),
-            _itemChat(
-              chat: 0,
-              message: 'Okey 🐣',
-              time: '18.00',
-            ),
-            _itemChat(
-              avatar: 'assets/image/5.jpg',
-              chat: 1,
-              message: 'It has survived not only five centuries, 😀',
-              time: '18.00',
-            ),
-            _itemChat(
-              chat: 0,
-              message:
-                  'Contrary to popular belief, Lorem Ipsum is not simply random text. 😎',
-              time: '18.00',
-            ),
-            _itemChat(
-              avatar: 'assets/image/5.jpg',
-              chat: 1,
-              message:
-                  'The generated Lorem Ipsum is therefore always free from repetition, injected humour, or non-characteristic words etc.',
-              time: '18.00',
-            ),
-            _itemChat(
-              avatar: 'assets/image/5.jpg',
-              chat: 1,
-              message: '😅 😂 🤣',
-              time: '18.00',
-            ),
-          ],
+          itemCount: messages.length,
+          itemBuilder: (context, index) {
+            final message = messages[index];
+            return _itemChat(
+              chat: message['sender'] == '65ce508521b067df4689e7e8' ? 0 : 1,
+              message: message['content'],
+              time: message['timestamp'],
+            );
+          },
         ),
       ),
     );
@@ -262,12 +332,11 @@ class _ChatPageState extends State<MessagesScreen> {
                   borderRadius: BorderRadius.circular(25),
                 ),
               ),
+              onSubmitted: sendMessage, // Call sendMessage when submitted
             ),
           ),
           IconButton(
-            onPressed: () {
-              // Handle add file action
-            },
+            onPressed: selectFile, // Call selectFile method to pick a file
             icon: Icon(Icons.attach_file),
             color: Colors.black,
           ),
@@ -288,6 +357,7 @@ class _ChatPageState extends State<MessagesScreen> {
           IconButton(
             onPressed: () {
               // Handle send message action
+              sendMessage(""); // You can add a message parameter here
             },
             icon: Icon(Icons.send_rounded),
             color: Colors.black,
@@ -296,4 +366,10 @@ class _ChatPageState extends State<MessagesScreen> {
       ),
     );
   }
+}
+
+void main() {
+  runApp(MaterialApp(
+    home: MessagesScreen(),
+  ));
 }
