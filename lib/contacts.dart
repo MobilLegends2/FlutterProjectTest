@@ -2,11 +2,7 @@ import 'package:chat/screens/messages/messages_screen.dart';
 import 'package:flutter/material.dart';
 
 class Avatar extends StatelessWidget {
-  final double size;
-  final String image;
-  final EdgeInsets margin;
-  final bool hasBorder;
-  final double elevation;
+
 
   const Avatar({
     Key? key,
