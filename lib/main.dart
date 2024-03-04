@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'messenger.dart'; // Import the MessengerPage
+import 'contacts.dart'; // Import the ContactsPage
 
 void main() {
   runApp(const MyApp());
@@ -21,6 +22,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/messenger': (context) =>
             MessagesScreen(), // Add route for MessengerPage
+        '/contacts': (context) => ContactsPage(), // Add route for ContactsPage
       },
     );
   }
@@ -61,6 +63,14 @@ class _MyHomePageState extends State<MyHomePage> {
                     context, '/messenger'); // Navigate to MessengerPage
               },
               child: Text('Messenger'),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(
+                    context, '/contacts'); // Navigate to ContactsPage
+              },
+              child: Text('Contacts'),
             ),
           ],
         ),
