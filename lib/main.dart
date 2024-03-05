@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/messenger': (context) =>
             MessagesScreen(), // Add route for MessengerPage
-        '/contacts': (context) => ContactsPage(), // Add route for ContactsPage
+        '/contacts': (context) => ChatsScreen(), // Add route for ContactsPage
       },
     );
   }
