@@ -20,8 +20,7 @@ class MyApp extends StatelessWidget {
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
       routes: {
-        '/messenger': (context) =>
-            MessagesScreen(), // Add route for MessengerPage
+        // Add route for MessengerPage
         '/contacts': (context) => ChatsScreen(), // Add route for ContactsPage
       },
     );

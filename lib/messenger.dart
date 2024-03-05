@@ -5,24 +5,42 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:file_picker/file_picker.dart';
 
 class MessagesScreen extends StatefulWidget {
+  final String conversationId; // Add conversationId parameter
+
+  MessagesScreen(
+      {required this.conversationId}); // Constructor with conversationId parameter
+
   @override
-  _ChatPageState createState() => _ChatPageState();
+  _MessagesScreenState createState() => _MessagesScreenState();
 }
 
-class _ChatPageState extends State<MessagesScreen> {
+class _MessagesScreenState extends State<MessagesScreen> {
   List<dynamic> messages = []; // List to store fetched messages
+  late String conversationId; // Variable to store conversationId
   late IO.Socket socket;
+  late TextEditingController
+      _textEditingController; // Controller for the text field
 
   @override
   void initState() {
     super.initState();
+    conversationId =
+        widget.conversationId; // Initialize conversationId from widget
     fetchMessages(); // Fetch messages when the widget initializes
     connectToSocket();
+    _textEditingController =
+        TextEditingController(); // Initialize text field controller
+  }
+
+  @override
+  void dispose() {
+    _textEditingController.dispose(); // Dispose the controller
+    super.dispose();
   }
 
   Future<void> fetchMessages() async {
     final response = await http.get(Uri.parse(
-        'http://10.0.2.2:9090/conversations/65ce508521b067df4689e7e8/messages'));
+        'http://10.0.2.2:9090/conversations/$conversationId/messages'));
 
     if (response.statusCode == 200) {
       // If the server returns a 200 OK response, parse the JSON
@@ -62,9 +80,9 @@ class _ChatPageState extends State<MessagesScreen> {
 
   void sendMessage(String message) {
     socket.emit('new_message', {
-      'sender': '65ce508521b067df4689e7e8', // Your sender ID
+      'sender': '65ca634c40ddbaf5e3db9d01', // Your sender ID
       'content': message,
-      'conversation': '65ce508521b067df4689e7e8' // Your conversation ID
+      'conversation': conversationId // Use dynamic conversationId here
     });
   }
 
@@ -82,7 +100,7 @@ class _ChatPageState extends State<MessagesScreen> {
         var request = http.MultipartRequest(
           'POST',
           Uri.parse(
-              'http://10.0.2.2:9090/conversations/65ce508521b067df4689e7e8/attachments'),
+              'http://10.0.2.2:9090/conversations/$conversationId/attachments'),
         );
         request.files.add(
           await http.MultipartFile.fromPath(
@@ -317,6 +335,7 @@ class _ChatPageState extends State<MessagesScreen> {
         children: [
           Expanded(
             child: TextField(
+              controller: _textEditingController, // Assign the controller
               decoration: InputDecoration(
                 hintText: 'Type your message...',
                 filled: true,
@@ -332,7 +351,6 @@ class _ChatPageState extends State<MessagesScreen> {
                   borderRadius: BorderRadius.circular(25),
                 ),
               ),
-              onSubmitted: sendMessage, // Call sendMessage when submitted
             ),
           ),
           IconButton(
@@ -349,15 +367,15 @@ class _ChatPageState extends State<MessagesScreen> {
           ),
           IconButton(
             onPressed: () {
-              // Handle record audio action
-            },
-            icon: Icon(Icons.mic),
-            color: Colors.black,
-          ),
-          IconButton(
-            onPressed: () {
-              // Handle send message action
-              sendMessage(""); // You can add a message parameter here
+              String message = _textEditingController
+                  .text; // Get the message from the text field
+              if (message.isNotEmpty) {
+                // Check if the message is not empty
+                sendMessage(
+                    message); // Call sendMessage method with the message
+                _textEditingController
+                    .clear(); // Clear the text field after sending
+              }
             },
             icon: Icon(Icons.send_rounded),
             color: Colors.black,
@@ -370,6 +388,6 @@ class _ChatPageState extends State<MessagesScreen> {
 
 void main() {
   runApp(MaterialApp(
-    home: MessagesScreen(),
+    home: MessagesScreen(conversationId: '65ce508521b067df4689e7e8'),
   ));
 }

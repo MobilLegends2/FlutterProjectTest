@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'messenger.dart'; // Import MessagesScreen
 
 class ChatsScreen extends StatefulWidget {
   const ChatsScreen({Key? key}) : super(key: key);
@@ -20,7 +21,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
 
   Future<void> fetchData() async {
     final response =
-        await http.get(Uri.parse('http://127.0.0.1:9090/conversations/'));
+        await http.get(Uri.parse('http://10.0.2.2:9090/conversations/'));
     if (response.statusCode == 200) {
       setState(() {
         conversations = json.decode(response.body);
@@ -45,14 +46,28 @@ class _ChatsScreenState extends State<ChatsScreen> {
                 itemCount: conversations.length,
                 itemBuilder: (context, index) {
                   final conversation = conversations[index];
-                  // Parse conversation data and return the corresponding widget
+                  final lastMessage = conversation['messages'].isEmpty
+                      ? {'content': '', 'timestamp': ''}
+                      : conversation['messages'].last;
+                  final senderName = lastMessage['sender']['name'];
+                  final messageContent = lastMessage['content'];
+                  final messageTimestamp = lastMessage['timestamp'];
+
                   return _itemChats(
-                    name: conversation['participants']
-                        [0], // Assuming participants contain names
-                    chat: conversation['messages'][0]
-                        ['content'], // Displaying the latest message
-                    time: conversation['messages'][0][
-                        'timestamp'], // Displaying the timestamp of the latest message
+                    name: senderName,
+                    chat: messageContent,
+                    time: messageTimestamp,
+                    onTap: () {
+                      // Navigate to MessagesScreen with conversation ID
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MessagesScreen(
+                            conversationId: conversation['_id'],
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -103,10 +118,12 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     shrinkWrap: true,
                     itemCount: 8,
                     itemBuilder: (context, index) {
-                      return Avatar(
-                        size: 60,
+                      // Replace this with your avatar widget
+                      return Container(
+                        width: 60,
+                        height: 60,
+                        color: Colors.blue,
                         margin: EdgeInsets.only(right: 15),
-                        image: '1.jpg',
                       );
                     },
                   ),
@@ -114,6 +131,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
               ),
             ],
           ),
+          SizedBox(
+              height: 10), // Add some space below the Row to prevent overflow
           Divider(
             color: Colors.white,
             thickness: 1,
@@ -125,23 +144,25 @@ class _ChatsScreenState extends State<ChatsScreen> {
   }
 
   // Your existing item chat widget
-  Widget _itemChats(
-      {required String name, required String chat, required String time}) {
+  Widget _itemChats({
+    required String name,
+    required String chat,
+    required String time,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
-      onTap: () {
-        // Handle chat item tap
-      },
+      onTap: onTap,
       child: Card(
         margin: EdgeInsets.symmetric(vertical: 20),
         elevation: 0,
         child: Row(
           children: [
-            Avatar(
+            // Replace this with your avatar widget
+            Container(
+              width: 60,
+              height: 60,
+              color: Colors.blue,
               margin: EdgeInsets.only(right: 20),
-              size: 60,
-              image: 'assets/image/placeholder.jpg', // Placeholder image path
-              hasBorder: true, // Add border to avatar
-              elevation: 2, // Add shadow effect
             ),
             Expanded(
               child: Column(
@@ -179,52 +200,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
   }
 }
 
-class Avatar extends StatelessWidget {
-  final double size;
-  final String image;
-  final EdgeInsets margin;
-  final bool hasBorder;
-  final double elevation;
-
-  const Avatar({
-    Key? key,
-    required this.size,
-    required this.image,
-    this.margin = EdgeInsets.zero,
-    this.hasBorder = false,
-    this.elevation = 0.0,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: margin,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          image: DecorationImage(
-            image: AssetImage(image),
-            fit: BoxFit.cover,
-          ),
-          border: hasBorder
-              ? Border.all(
-                  color: Colors.white,
-                  width: 2.0,
-                )
-              : null,
-          boxShadow: hasBorder
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: elevation,
-                    spreadRadius: elevation / 2,
-                  ),
-                ]
-              : null,
-        ),
-      ),
-    );
-  }
+void main() {
+  runApp(MaterialApp(
+    home: ChatsScreen(),
+  ));
 }
