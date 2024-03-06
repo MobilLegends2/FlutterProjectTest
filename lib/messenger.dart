@@ -136,7 +136,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
             _topChat(),
             _bodyChat(),
             SizedBox(
-              height: 120,
+              height: 40,
             ),
             _formChat(),
           ],
