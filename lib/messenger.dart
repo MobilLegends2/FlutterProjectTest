@@ -16,6 +16,7 @@ class MessagesScreen extends StatefulWidget {
 
 class _MessagesScreenState extends State<MessagesScreen> {
   List<dynamic> messages = []; // List to store fetched messages
+  String currentUserId = '65ca634c40ddbaf5e3db9d01';
   late String conversationId; // Variable to store conversationId
   late IO.Socket socket;
   late TextEditingController
@@ -80,7 +81,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   void sendMessage(String message) {
     socket.emit('new_message', {
-      'sender': '65ca634c40ddbaf5e3db9d01', // Your sender ID
+      'sender': currentUserId, // Your sender ID
       'content': message,
       'conversation': conversationId // Use dynamic conversationId here
     });
@@ -261,7 +262,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           itemBuilder: (context, index) {
             final message = messages[index];
             return _itemChat(
-              chat: message['sender'] == '65ce508521b067df4689e7e8' ? 0 : 1,
+              chat: message['sender'] == currentUserId ? 0 : 1,
               message: message['content'],
               time: message['timestamp'],
             );
@@ -277,12 +278,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           chat == 0 ? MainAxisAlignment.end : MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        avatar != null
-            ? CircleAvatar(
-                radius: 25,
-                backgroundImage: AssetImage(avatar),
-              )
-            : SizedBox(),
+        chat == 0 ? SizedBox() : CircleAvatar(radius: 25),
         Flexible(
           child: Container(
             margin: EdgeInsets.only(left: 10, right: 10, top: 20),
@@ -323,6 +319,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 style: TextStyle(color: Colors.grey.shade400),
               )
             : SizedBox(),
+        chat == 0
+            ? CircleAvatar(radius: 25)
+            : SizedBox(), // Add sender avatar on the right
       ],
     );
   }

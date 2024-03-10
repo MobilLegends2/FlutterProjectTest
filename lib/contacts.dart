@@ -12,6 +12,7 @@ class ChatsScreen extends StatefulWidget {
 
 class _ChatsScreenState extends State<ChatsScreen> {
   List<dynamic> conversations = []; // Store fetched conversations
+  String currentUserId = '65ca634c40ddbaf5e3db9d01';
 
   @override
   void initState() {
@@ -20,8 +21,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
   }
 
   Future<void> fetchData() async {
-    final response =
-        await http.get(Uri.parse('http://10.0.2.2:9090/conversations/'));
+    final response = await http
+        .get(Uri.parse('http://10.0.2.2:9090/conversation/$currentUserId'));
     if (response.statusCode == 200) {
       setState(() {
         conversations = json.decode(response.body);
